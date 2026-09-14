@@ -1,29 +1,28 @@
-import socket
-import sys
 import os
+import sys
 import threading
 
+from connections import Connection
+from listener import Listener
 
-def handle_connection(conn: socket.socket, addr):
+
+def handle_connection(conn: Connection):
     while True:
-        length = int.from_bytes(conn.recv(4))
-        print(f"length {length}")
-        data = conn.recv(length)
+        data = conn.receive_message()
         if not data:
-            print(f"connection {addr[0]}:{addr[1]} closed.")
+            print(repr(conn)[1:-1] + " is sclosed.")
             break
         from_client = data.decode()
         print(f"Recived data: {from_client}")
-        conn.send("im server".encode())
+        conn.send_message("im server".encode())
     conn.close()
 
 
 def run_server(ip, port):
-    serv = socket.socket()
-    serv.bind((ip, port))
-    serv.listen()
+    serv = Listener(ip, port)
+    serv.start()
     while True:
-        t = threading.Thread(target=handle_connection, args=(serv.accept()))
+        t = threading.Thread(target=handle_connection, args=([serv.accept()]))
         t.start()
     serv.close()
 
