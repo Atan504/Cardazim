@@ -2,6 +2,7 @@ import argparse
 import socket
 import sys
 
+from connections import Connection
 
 ###########################################################
 ####################### YOUR CODE #########################
@@ -9,22 +10,16 @@ import sys
 
 
 def run_client(server_ip, server_port):
-    soc = socket.socket()
-    soc.connect((server_ip, server_port))
+    con = Connection.connect(server_ip, server_port)
     while True:
         data = input().encode()
         if not data:
-            send_data(soc, "".encode())
-            soc.close()
+            con.send_message(b"")
+            con.close()
             break
-        from_server = send_data(soc, data)
+        con.send_message(data)
+        from_server = con.receive_message()
         print(from_server.decode())
-
-
-def send_data(sock, data: bytes):
-    packet = len(data).to_bytes(4) + data
-    sock.send(packet)
-    return sock.recv(4096)
 
 
 ###########################################################
