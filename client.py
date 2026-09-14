@@ -8,14 +8,23 @@ import sys
 ###########################################################
 
 
-def send_data(server_ip, server_port, data):
+def run_client(server_ip, server_port):
     soc = socket.socket()
     soc.connect((server_ip, server_port))
-    soc.send(data)
-    from_server = soc.recv(4096)
-    soc.close()
-    print(from_server.decode())
-    pass
+    while True:
+        data = input().encode()
+        if not data:
+            send_data(soc, "".encode())
+            soc.close()
+            break
+        from_server = send_data(soc, data)
+        print(from_server.decode())
+
+
+def send_data(sock, data: bytes):
+    packet = len(data).to_bytes(4) + data
+    sock.send(packet)
+    return sock.recv(4096)
 
 
 ###########################################################
@@ -27,7 +36,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Send data to server.")
     parser.add_argument("server_ip", type=str, help="the server's ip")
     parser.add_argument("server_port", type=int, help="the server's port")
-    parser.add_argument("data", type=str, help="the data")
+    # parser.add_argument("data", type=str, help="the data")
     return parser.parse_args()
 
 
@@ -37,7 +46,7 @@ def main():
     """
     args = get_args()
     try:
-        send_data(args.server_ip, args.server_port, args.data.encode())
+        run_client(args.server_ip, args.server_port)
         print("Done.")
     except Exception as error:
         print(f"ERROR: {error}")

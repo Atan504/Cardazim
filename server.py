@@ -1,6 +1,21 @@
 import socket
 import sys
 import os
+import threading
+
+
+def handle_connection(conn: socket.socket, addr):
+    while True:
+        length = int.from_bytes(conn.recv(4))
+        print(f"length {length}")
+        data = conn.recv(length)
+        if not data:
+            print(f"connection {addr[0]}:{addr[1]} closed.")
+            break
+        from_client = data.decode()
+        print(f"Recived data: {from_client}")
+        conn.send("im server".encode())
+    conn.close()
 
 
 def run_server(ip, port):
@@ -8,15 +23,8 @@ def run_server(ip, port):
     serv.bind((ip, port))
     serv.listen()
     while True:
-        conn, addr = serv.accept()
-        while True:
-            data = conn.recv(4096)
-            if not data:
-                break
-            from_client = data.decode()
-            print(f"Recived data: {from_client}")
-            conn.send("im server".encode())
-        conn.close()
+        t = threading.Thread(target=handle_connection, args=(serv.accept()))
+        t.start()
     serv.close()
 
 
