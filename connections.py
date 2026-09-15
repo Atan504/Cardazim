@@ -23,7 +23,7 @@ class Connection:
             return 1
 
     @classmethod
-    def connect(cls, host: str, port: int):
+    def connect(cls, host: str, port: int) -> Connection:
         soc = socket.socket()
         soc.connect((host, port))
         return Connection(soc)
