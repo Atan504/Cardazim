@@ -22,12 +22,11 @@ class CryptImage:
         return img_byte_array.getvalue()
 
     def bytes_to_img(self, byts: bytes):
-        # add this and implement it in encrypt and deencrypt TODO!!!!
         return Image.open(io.BytesIO(byts))
 
     def encrypt(self, key: str) -> None:
         aes_key = hashlib.sha256(key.encode()).digest()
-        self.key_hash = hashlib.sha256(aes_key)
+        self.key_hash = hashlib.sha256(aes_key).digest()
         cipher = AES.new(aes_key, AES.MODE_EAX, nonce=b"arazim")
         self.img = cipher.encrypt(
             self.img_to_bytes(self.img)
@@ -35,7 +34,7 @@ class CryptImage:
 
     def dencrypt(self, key: str):
         bkey = hashlib.sha256(key.encode()).digest()
-        if hashlib.sha256(bkey).digest() != self.key_hash.digest():
+        if hashlib.sha256(bkey).digest() != self.key_hash:
             print(hashlib.sha256(bkey).digest())
             print(self.key_hash.digest())
             return False
@@ -43,6 +42,18 @@ class CryptImage:
         self.img = self.bytes_to_img(cipher.decrypt(self.img))
         self.key_hash = None
         return True
+
+    def get_image(self):
+        """
+        return bytes if encrypted, else Image
+        """
+        return self.img
+
+    def get_hash(self):
+        return self.key_hash
+
+    def set_hash(self, hash):
+        self.key_hash = hash
 
     def save(self):
         self.img.save("output1.jpg")
