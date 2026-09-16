@@ -1,20 +1,20 @@
-import os
 import sys
 import threading
 
 from connections import Connection
 from listener import Listener
+from card import Card
 
 
 def handle_connection(conn: Connection):
     while True:
-        data = conn.receive_message()
-        if not data:
+        from_client = conn.receive_bytes()
+        if not from_client:
             print(repr(conn)[1:-1] + " is sclosed.")
             break
-        from_client = data.decode()
-        print(f"Recived data: {from_client}")
-        conn.send_message("im server".encode())
+        card = Card.deserialize(from_client)
+        print(str(card))
+        conn.send_message("im server")
     conn.close()
 
 
