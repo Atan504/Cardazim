@@ -1,6 +1,9 @@
+import builtins
 from os import PathLike
 
+import PIL
 from CryptImage import CryptImage
+from PIL import Image
 
 
 class Card:
@@ -17,7 +20,7 @@ class Card:
         return f"<Card name:{self.name}, creator:{self.creator}>"
 
     def __str__(self):
-        return f"name: {self.name}\ncreator: {self.creator}\nimage: {self.image}\nriddle: {self.riddle}\nsolution: {self.solution}"
+        return f"name: {self.name}\ncreator: {self.creator}\nimage: {self.image}\nriddle: {self.riddle}\nsolution: {'unsolved' if self.solution is None else self.solution}"
 
     @classmethod
     def create_card(
@@ -25,41 +28,63 @@ class Card:
     ):
         return Card(name, creator, CryptImage.create_from_path(path), riddle, solution)
 
-    def serialize(self) -> bytes:  # TODO isolate length + data into another func
-        name = len(self.name).to_bytes(4) + self.name.encode()
-        creator = len(self.creator).to_bytes(4) + self.creator.encode()
+    @classmethod
+    def _length_and_data(cls, data: str | bytes) -> bytes:
+        return len(data).to_bytes(4) + (
+            data.encode() if isinstance(data, str) else data
+        )
+
+    serialize_format = [
+        # name of value, if its dynamicly sized, length of value(not dynamic)\ length of length of value, type
+        ("name", True, 4, str),
+        ("creator", True, 4, str),
+        ("image", True, 4, Image),
+        ("hash", False, 32, bytes),
+        ("riddle", True, 4, str),
+    ]
+
+    @classmethod
+    def handle_serialize_types(cls, data: bytes, type: type):
+        match type:
+            case builtins.str:
+                return data.decode()
+            case builtins.bytes:
+                return data
+            case PIL.Image:
+                return CryptImage.bytes_to_img(data)
+            case builtins.int:
+                return int.from_bytes(data)
+
+    def serialize(self) -> bytes:
+        name = self._length_and_data(self.name)
+        creator = self._length_and_data(self.creator)
         imageb = CryptImage.img_to_bytes(self.image.image)
-        image = len(imageb).to_bytes(4) + imageb
+        image = self._length_and_data(imageb)
         # TODO prob need to adress the case of encrpyt image by either fixing storing encrypted image or by adding an case
         hash = self.image.get_hash()
-        riddle = len(self.riddle).to_bytes(4) + self.riddle.encode()
+        riddle = self._length_and_data(self.riddle)
         return name + creator + image + hash + riddle
 
     @classmethod
-    def deserialize(
-        cls, byts: bytes
-    ):  # TODO asap turn into for loop over a format instead of this
+    def deserialize(cls, byts: bytes):
         p = 0
-        namel = int.from_bytes(byts[p : p + 4])
-        p += 4
-        name = byts[p : p + namel].decode()
-        p += namel
-        creatorl = int.from_bytes(byts[p : p + 4])
-        p += 4
-        creator = byts[p : p + creatorl].decode()
-        p += creatorl
-        imagel = int.from_bytes(byts[p : p + 4])
-        p += 4
-        image = CryptImage.bytes_to_img(byts[p : p + imagel])
-        p += imagel
-        hash = byts[p : p + 32]
-        p += 32
-        riddlel = int.from_bytes(byts[p : p + 4])
-        p += 4
-        riddle = byts[p : p + riddlel].decode()
-        crypt = CryptImage(image)
-        crypt.set_hash(hash)
-        return Card(name, creator, crypt, riddle, None)
+        values = {}
+        for field in cls.serialize_format:
+            if field[1]:
+                l = int.from_bytes(byts[p : p + field[2]])
+                p += field[2]
+                values[field[0]] = cls.handle_serialize_types(byts[p : p + l], field[3])
+                p += l
+            else:
+                values[field[0]] = cls.handle_serialize_types(
+                    byts[p : p + field[2]], field[3]
+                )
+                p += field[2]
+        crypt = CryptImage(values.get("image"))
+        crypt.set_hash(values.get("hash"))
+        return Card(
+            values.get("name"), values.get("creator"), crypt, values.get("name"), None
+        )
 
     @property
     def cryptimage(self) -> CryptImage:
