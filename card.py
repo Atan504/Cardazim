@@ -76,6 +76,7 @@ class Card:
                 p += field[2]
                 values[field[0]] = cls.handle_serialize_types(byts[p : p + l], field[3])
                 p += l
+
             else:
                 values[field[0]] = cls.handle_serialize_types(byts[p : p + field[2]], field[3])
                 p += field[2]
@@ -87,3 +88,25 @@ class Card:
     @property
     def cryptimage(self) -> CryptImage:
         return self.image
+
+    def encrypt(self, solution=None):
+        if solution is not None:
+            self.solution = solution
+        if not isinstance(self.image.image, Image):
+            print("this is already encrypted!")
+            return
+        if self.solution is None:
+            print("set a solution first!")
+            return
+        self.image.encrypt(self.solution)
+
+    def decrypt(self, solution=None):
+        if solution is not None:
+            self.solution = solution
+        if isinstance(self.image.image, Image):
+            print("this is an image!")
+            return
+        if self.solution is None:
+            print("set a solution first!")
+            return
+        self.image.dencrypt(self.solution)

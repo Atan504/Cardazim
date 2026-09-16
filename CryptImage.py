@@ -3,8 +3,8 @@ import io
 from os import PathLike
 from typing import Union
 
-from PIL import Image
 from Crypto.Cipher import AES
+from PIL import Image
 
 
 class CryptImage:
@@ -33,15 +33,11 @@ class CryptImage:
         aes_key = hashlib.sha256(key.encode()).digest()
         self.key_hash = hashlib.sha256(aes_key).digest()
         cipher = AES.new(aes_key, AES.MODE_EAX, nonce=b"arazim")
-        self.img = cipher.encrypt(
-            self.img_to_bytes(self.img)
-        )  # converitng back to img instead of bytes
+        self.img = cipher.encrypt(self.img_to_bytes(self.img))
 
     def dencrypt(self, key: str):
         bkey = hashlib.sha256(key.encode()).digest()
         if hashlib.sha256(bkey).digest() != self.key_hash:
-            print(hashlib.sha256(bkey).digest())
-            print(self.key_hash.digest())
             return False
         cipher = AES.new(bkey, AES.MODE_EAX, nonce=b"arazim")
         self.img = self.bytes_to_img(cipher.decrypt(self.img))
