@@ -10,18 +10,23 @@ from Crypto.Cipher import AES
 class CryptImage:
     def __init__(self, img: Image):
         self.img = img
-        self.key_hash = None
+        self.key_hash = hashlib.sha256().digest()
+
+    def __str__(self):
+        return f"image: {self.img}, hash: {self.key_hash}"
 
     @classmethod
     def create_from_path(cls, path: Union[str, PathLike]):
         return CryptImage(Image.open(path))
 
-    def img_to_bytes(self, img: Image):
+    @classmethod
+    def img_to_bytes(cls, img: Image):
         img_byte_array = io.BytesIO()
-        img.save(img_byte_array, format=img.format)
+        img.save(img_byte_array, format="PNG")
         return img_byte_array.getvalue()
 
-    def bytes_to_img(self, byts: bytes):
+    @classmethod
+    def bytes_to_img(cls, byts: bytes):
         return Image.open(io.BytesIO(byts))
 
     def encrypt(self, key: str) -> None:
@@ -43,7 +48,8 @@ class CryptImage:
         self.key_hash = None
         return True
 
-    def get_image(self):
+    @property
+    def image(self):
         """
         return bytes if encrypted, else Image
         """
@@ -52,8 +58,8 @@ class CryptImage:
     def get_hash(self):
         return self.key_hash
 
-    def set_hash(self, hash):
+    def set_hash(self, hash: bytes):
         self.key_hash = hash
 
-    def save(self):
-        self.img.save("output1.jpg")
+    def save(self, path: PathLike):
+        self.img.save(path)
